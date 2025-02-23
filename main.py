@@ -35,7 +35,7 @@ class Cardgen(Program):
             # draw.font_family = "Arial"
             draw.draw(card_img)
             draw.font_size = 9.5
-            text = "Quand des haricots sont utilisés, vous pouvez récupérer 1 des haricots. Vous devez au préalable réussir à faire un jet de dé impair si vous n’êtes pas sur la même tuile que le joueur concerné."
+            text = "Quand des haricots sont utilisés, vous pouvez récupérer 1 des haricots.\nVous devez au préalable réussir à faire un jet de dé impair si vous n’êtes pas sur la même tuile que le joueur concerné."
             text = self.draw_framed_text(card_img, draw, text, self.__card_width - (self.__card_border_width * 4),
                                          to_px("30mm"))
             draw.text(self.__card_border_width * 2, 60, text)
@@ -82,11 +82,14 @@ class Cardgen(Program):
                 columns = len(mutable_message)
                 while columns > 0:
                     columns -= 1
-                    mutable_message = '\n'.join(wrap(mutable_message, columns))
-                    wrapped_width, _ = eval_metrics(mutable_message)
+                    lines = mutable_message.splitlines()
+                    wrapped_lines = ['\n'.join(wrap(line, columns, replace_whitespace=False)) for line in lines]
+                    candidate_message = '\n'.join(wrapped_lines)
+                    wrapped_width, _ = eval_metrics(candidate_message)
                     if wrapped_width <= roi_width:
+                        mutable_message = candidate_message
                         break
-                if columns < 1:
+                if columns <= 0:
                     ctx.font_size -= 0.75  # Reduce pointsize
                     mutable_message = text  # Restore original text
             else:
