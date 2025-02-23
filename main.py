@@ -2,7 +2,7 @@ import logging
 from textwrap import wrap
 
 from wand.color import Color
-from wand.drawing import Drawing
+from wand.drawing import Drawing, GRAVITY_TYPES
 from wand.image import Image
 # https://docs.wand-py.org/en/0.6.11/guide/draw.html#word-wrapping
 
@@ -31,14 +31,15 @@ class Cardgen(Program):
         with Drawing() as draw:
             # draw.font_family = "DejaVu Sans Mono"
             draw.font_size = 12
-            draw.text(self.__card_border_width * 2, self.__card_border_width * 2 + 10, title)
+            draw.gravity = "north_west"
+            draw.text(self.__card_border_width * 2, self.__card_border_width * 2, title)
             # draw.font_family = "Arial"
             draw.draw(card_img)
             draw.font_size = 9.5
-            text = "Quand des haricots sont utilisés, vous pouvez récupérer 1 des haricots.\nVous devez au préalable réussir à faire un jet de dé impair si vous n’êtes pas sur la même tuile que le joueur concerné."
-            text = self.draw_framed_text(card_img, draw, text, self.__card_width - (self.__card_border_width * 4),
-                                         to_px("30mm"))
-            draw.text(self.__card_border_width * 2, 60, text)
+            text = "Quand des haricots sont utilisés, vous pouvez récupérer 1 des haricots.\n\nVous devez au préalable réussir à faire un jet de dé impair si vous n’êtes pas sur la même tuile que le joueur concerné."
+            self.draw_text_in_area(draw, card_img, text,
+                                   self.__card_border_width * 2, to_px("1cm"),
+                                   self.__card_width - (self.__card_border_width * 4), to_px("30mm"))
             draw.draw(card_img)
         return card_img
 
@@ -60,17 +61,18 @@ class Cardgen(Program):
                            width=card_img.width - ((border_width + 1) * 2) - 1, height=border_width)
             draw.draw(card_img)
 
-    def draw_framed_text(self, image, ctx, text, roi_width, roi_height):
+    def draw_text_in_area(self, ctx, image, text, posx, posy, roi_width, roi_height):
         """Break long text to multiple lines, and reduce point size
         until all text fits within a bounding box."""
         mutable_message = text
         iteration_attempts = 100
         logging.info(f"roi_width={roi_width} roi_height={roi_height}")
+        ctx.push()
 
         def eval_metrics(txt):
             """Quick helper function to calculate width/height of text."""
             metrics = ctx.get_font_metrics(image, txt, True)
-            return (metrics.text_width, metrics.text_height)
+            return metrics.text_width, metrics.text_height
 
         while ctx.font_size > 0 and iteration_attempts:
             iteration_attempts -= 1
@@ -95,8 +97,11 @@ class Cardgen(Program):
             else:
                 break
         if iteration_attempts < 1:
+            ctx.pop()
             raise RuntimeError("Unable to calculate word_wrap for " + text)
-        return mutable_message
+        ctx.gravity = "north_west"
+        ctx.text(posx, posy, mutable_message)
+        ctx.pop()
 
 
 def main():
